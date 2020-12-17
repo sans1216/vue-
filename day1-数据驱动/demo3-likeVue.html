@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="root">
+        <div> 
+            <p>{{name}}---{{msg}}</p>
+        </div>
+        <span>msg:{{msg}}</span>
+        <span>name:{{name}}</span>
+    </div>
+    <script>
+        //步骤拆解
+        //1.拿到模板
+        //2.拿到数据
+        //3.将数据与模板结合，得到的是HTML元素
+        //4.放到页面中
+        let rkuohao = /\{\{(.+?)\}\}/g;
+        //1
+        let tmpNode = document.querySelector('#root');
+        
+        //2
+        let data = {
+            name: 'm1a',
+            msg: '数据驱动源码'
+        };
+        //3
+        //一般使用递归
+        //在真正的vue源码中是DOM-> 字符串模板 -> Vnode -> 真正的DOM
+        function compiler( template , data ) {
+            let childNodes = template.childNodes; //取出子元素
+            for(let i = 0; i<childNodes.length ;i++){
+                let type = childNodes[i].nodeType; //1代表元素 3代表文本节点
+                if( type===3 ){
+                    //文本节点，判断里面是否有{{}}插值
+                    let txt = childNodes[i].nodeValue; //该属性只有文本节点才有意义
+                    //判断txt里面有没有双花括号，正则表达式
+                        txt = txt.replace(rkuohao,function( _, g ){ //匹配一次，回调函数就会被调用一次 _：代表被匹配到的字符串，g：代表分组
+                        let key = g.trim(); //g就是{{}}里面的变量名
+                        let value = data[key];
+                        //将{{xxx}}用data[xxx]替换
+                        return value; 
+                    })
+                    childNodes[i].nodeValue = txt;
+                }
+                else if(type === 1){
+                    //元素节点 考虑有没有子元素，是否需要将其子元素判断是否要插值
+                    compiler(childNodes[i], data);
+                }
+            }
+        }     
+        
+        let generateNode = tmpNode.cloneNode(true); //dom元素的拷贝方法
+        // compiler(tmpNode , data);  
+        //4
+        compiler(generateNode, data);   
+
+        //放到页面中,替换原来的dom节点
+        root.parentNode.replaceChild(generateNode ,root);
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        //存放标签的数组元素
+        let tags = 'div,p,a,img,ul,li'.split(',');
+
+        //判断当前标签名是否是内置标签的函数
+        function isHTMLTag( tagName ){
+            tagName = tagName.toLowerCase();
+            if(tags.includes(tagName)){
+                return true;
+            }else{
+                return false;
+            }
+        }
+    </script>
+</body>
+</html>

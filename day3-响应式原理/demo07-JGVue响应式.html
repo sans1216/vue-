@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="root">
+        <div>
+            <div>hello1</div>
+            <div>hello2</div>
+            <div>hello3</div>
+        </div>
+        <ul>
+            <li>1</li>
+            <li>2</li>
+            <li>3</li>
+        </ul>
+    </div>
+    <script>
+        /**
+         在真正的vue中使用了二次提交的设计结构
+         1.在页面中DOM和虚拟DOM是一一对应的关系
+         2.先由AST和数据生成虚拟VNode（render函数）
+         3.将新的VNode和旧的VNode进行比较（diff算法），并更新（update函数）
+        **/
+        let rkuohao = /\{\{(.?+)\}\}/g;
+        class VNode{
+            constructor( tag,data,value,type ){
+                this.tag = tag && tag.toLowerCase();
+                this.data = data;
+                this.value = value;
+                this.type = type;
+                this.children = [];
+            }
+            appendChild( vnode ){
+                this.children.push(vnode);
+            }
+        }
+        //转换成VNode函数
+        function getVnode(node){
+            let nodeType = node.nodeType;
+            let _vnode = null;
+            if(nodeType === 1){
+                //元素节点
+                let nodeName = node.nodeName;
+                let attrs = node.attributes;
+                let _attrObj = {};
+                for(let i = 0;i<attrs.length;i++){
+                    _attrObj[attrs[i].nodeName] = attrs[i].nodeValue;
+                }
+                _vnode = new VNode(nodeName,_attrObj,undefined,nodeType);
+                //考虑node的子元素
+                let childNodes = node.childNodes;
+                for(let i = 0;i<childNodes.length;i++){
+                    _vnode.appendChild(getVnode(childNodes[i]));
+                }
+            }else if(nodeType === 3){
+                _vnode = new Vnode(undefined,undefined,node.nodeValue,nodeType);
+                
+            }
+            return _vnode;
+        }
+        function getValueByPath(obj,path){
+            let paths = path.split('');
+            let res = obj;
+            while(paths.length>0){
+                res = res[paths.shift()];
+            }
+            return res;
+        }
+        //虚拟DOM转换成真实的dom
+        function parseVnode( vnode ){
+            let type = vnode.type;
+            let _node = null;
+            if( type === 3 ){
+                return document.createTextNode( vnode.value );  //创建文本节点
+            }else if( type === 1 ){
+                _node = document.createElement( vnode.tag );
+                //属性,其中data是一个键值对
+                let data = vnode.data;   
+                //用forEach和Object.keys()实现键值对的遍历
+                Object.keys(data).forEach((key)=>{
+                    let attrName = key;
+                    let attrValue = data[key];
+                    _node.setAttribute( attrName , attrValue );
+                });
+                //子元素
+                let children = vnode.children;
+                children.forEach( subvnode => {
+                    //递归转换子元素，是个虚拟dom
+                    _node.appendChild(parseVnode(children));
+                })
+
+                return _vnode;
+            }   
+        }
+        //将带有变量的VNode与data结合 转换成有数据的VNode
+        function combine(vnode,data){
+            //模拟AST -> VNode的行为
+            let _type = vnode.type;
+            let _data = vnode.data;
+            let _value = vnode.value;
+            let _tag = vnode.tag;
+            let _children = vnode.children;
+            let _vnode = null;
+            if(type === 3){
+                _value = _value.replace(rkuohao,function(_,g){
+                    let path = g.trim();
+                    return getValueByPath(_data,path);
+                })
+                _vnode = new VNode(_tag,_data,_value,_type);
+            }else if(type === 1){
+                _vnode = new VNode(_tag,_data,_value,_type);
+                _children.forEach( _subVnode => _vnode.appendChild(combine(_subVnode)));
+            }
+        }
+        //响应式化
+        let ARRAY_METHOD = [
+            'push','pop','shift','unshift','reverse','sort','splice'
+        ]
+        //思路：原型式继承——修改原型链的结构
+        //继承关系: arr -> 改写的方法 -> Array.prototype -> Object.prototype
+        let array_methods = Object.create(Array.prototype);
+        //改写方法
+        ARRAY_METHOD.forEach( method => {
+            for(let i = 0;i<arguments.length;i++){
+                reactify(arguments[i]);
+            }
+            array_methods[method] = function() {
+               let res = Array.prototype[method].apply( this, arguments );
+               return res;
+            }
+        })
+        
+        function defineRective( target, key ,value , enumerable ){
+            Object.defineProperty(target,key,{
+                configurable:true,
+                enumerable: enumerable,
+                get() {
+                    return value;
+                },
+                set(newVal) {
+                    //实现模板刷新
+                    value = newVal;
+                }
+            })
+        }
+        //将对象进行响应式化
+        function reactify(o){
+            let keys = Object.keys(o);
+            for( let i = 0;i<keys.length;i++){
+                let key = keys[i];
+                let value = o[key];
+                //判断这个属性是不是引用类型，判断是不是数组类型
+                //如果是引用类型，就需要递归
+                //如果是数组，就需要循环数组，将数组里的元素进行响应式化
+                if(Array.isArray(value)) {
+                    //数组
+                    value._proto_ = array_methods;
+                    for(let j = 0; j < value.length ; j++ ){
+                        //取出数组里的每个值，进行响应化
+                        reactify[value[ j ]];
+                    }
+                }else if(typeof value === Object && value != null && !Array.isArray(value)) {
+                    //如果传入的value是非数组的引用类型，也就是object，就又回去响应化
+                    reactify( value );
+                }else{
+                    //对象或值类型
+                    defineRective(o,key,value,true);
+                }
+                
+            }
+        }
+    
+        function JGVue( options ){
+            this._data = options.data;
+            let elm = document.querySelector(options.el);
+            // this._template = document.querySelector(options.el);
+            let ._template = elm;
+            this._parent = elm.parentNode;
+            this.mount(); //挂载
+            reactify(this._data);
+        }
+        JGVue.prototype.mount= function() {
+            //需要提供一个render方法：生成虚拟dom
+            this.render = this.createRenderFn();
+
+            this.mountComponent();
+        }
+        JGVue.prototype.mountComponent = function() {
+            //执行mountComponent()函数
+            let mount = () => {
+                this.update( this.render())
+            }
+
+            mount.call(this);
+        }
+        //render函数，目的是缓存抽象语法树
+        JGVue.prototype.createRenderFn = function() {
+            //生成虚拟dom
+            let ast = getVnode(this._template);
+            //将AST和data合成，形成VNode
+            return function render(){
+                return combine(ast,this._data);
+            }
+                
+        }
+        //将虚拟DOM渲染到页面中
+        JGVue.prototype.update = function( vnode ) {
+            //简化版本，直接生成HTML DOM replaceChild进行dom节点替换
+            //父元素.replaceChild(新元素，旧元素)
+            let realDOM = parseVnode(vnode);
+            this._parent.replaceChild( realDOM,document.querySelector('#root'));
+        }
+        let app = new HGVue({
+            el: '#root',
+            data: {
+                name: 'm1a',
+                msg: 'hi'
+            }
+        })
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        var o = {};
+        //给o提供属性
+        o.name = "张三";
+        //等价于
+        Object.defineProperty( o,"age", {
+            configurable:true,
+            writable: true,
+            enumerable: true,
+            value: 19
+        });
+        //get 和 set
+        let _gender;
+        Object.defineProperty( o , "gender",{
+            configurable:true,
+            // writable:true,  writable和get/set不能同时设置
+            enumerable:true,
+            //如果使用o.gender来访问数据，就会调用getter方法
+            get() {
+                return _gender;
+            },
+            set(newVal) {
+                _gender = newVal;
+                console.log(newVal);
+            }
+        })
+        //在Vue中使用defineRective(target, key, value, enumerable)
+    </script>
+</body>
+</html>

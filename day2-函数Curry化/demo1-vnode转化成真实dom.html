@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        //虚拟DOM转换成真实的dom
+        function parseVnode( vnode ){
+            let type = vnode.type;
+            let _node = null;
+            if( type === 3 ){
+                return document.createTextNode( vnode.value );  //创建文本节点
+            }else if( type === 1 ){
+                _node = document.createElement( vnode.tag );
+                //属性,其中data是一个键值对
+                let data = vnode.data;   
+                //用forEach和Object.keys()实现键值对的遍历
+                Object.keys(data).forEach((key)=>{
+                    let attrName = key;
+                    let attrValue = data[key];
+                    _node.setAttribute( attrName , attrValue );
+                });
+                //子元素
+                let children = vnode.children;
+                children.forEach( subvnode => {
+                    //递归转换子元素，是个虚拟dom
+                    _node.appendChild(parseVnode(children));
+                })
+
+                return _vnode;
+            }   
+        }
+    </script>
+</body>
+</html>

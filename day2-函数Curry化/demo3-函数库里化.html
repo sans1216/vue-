@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        // 例子1.判断是否是内置的HTML标签
+        let tags = 'div,p,a,img,ul,li'.split(',');
+
+        function makeMap( keys ) {
+            let set = {}; //集合
+            keys.forEach( key => set[key] = true )
+            return function (tagName){
+                //!!转换成布尔值
+                return !!set[tagName.toLowerCase()]
+            }
+        }
+        let isHTMLTag = makeMap( tags );
+        // 例子2.虚拟DOM的render方法
+        // 思考：vue模板转换成AST抽象语法树需要执行几次？
+        // 页面一开始加载需要渲染
+        // 每一个属性（响应式）数据在发生变化的时候要渲染
+        // watch,computed等等
+    </script>
+</body>
+</html>

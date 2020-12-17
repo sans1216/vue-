@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="root">
+        <div> 
+            <p>{{name.firstName}}---{{msg}}</p>
+        </div>
+        
+    </div>
+    <script>
+        let rkuohao = /\{\{(.+?)\}\}/g;
+        // Curry化后的版本
+        // function getValueByPath(obj,path){
+        //         let paths = path.split('.'); //[xxx,yyy,zzz]
+        //         return function getValueByPath( obj ){
+        //             let res= obj;
+        //             let prop;
+        //             while(prop = paths.shift()){
+        //                 //shift就是把数组中的第一项取出来
+        //                 res = res[prop];
+        //             }
+        //             return res;
+        //         }
+        // }
+        function getValueByPath(obj,path){
+           let paths = path.split('.'); //[xxx,yyy,zzz]
+            //    先取得obj.xxx 再取得结果中的yyy,再取得结果中的zzz
+            //    let res = null;
+            //    res = obj[paths[0]];
+            //    res = res[paths[1]];
+            let res= obj;
+            let prop;
+            while(prop = paths.shift()){
+                //shift就是把数组中的第一项取出来
+                res = res[prop];
+            }
+            return res;
+       }
+        function compiler( template , data ) {
+            let childNodes = template.childNodes; //取出子元素
+            for(let i = 0; i<childNodes.length ;i++){
+                let type = childNodes[i].nodeType; //1代表元素 3代表文本节点
+                if( type===3 ){
+                    //文本节点，判断里面是否有{{}}插值
+                    let txt = childNodes[i].nodeValue; //该属性只有文本节点才有意义
+                    //判断txt里面有没有双花括号，正则表达式
+                        txt = txt.replace(rkuohao,function( _, g ){ //匹配一次，回调函数就会被调用一次 _：代表被匹配到的字符串，g：代表分组
+                        let path = g.trim(); //g就是{{}}里面的变量名
+                        // let value = data[key];
+                        let value = getValueByPath(data , path);
+                        //将{{xxx}}用data[xxx]替换
+                        return value; 
+                    })
+                    childNodes[i].nodeValue = txt;
+                }
+                else if(type === 1){
+                    //元素节点 考虑有没有子元素，是否需要将其子元素判断是否要插值
+                    compiler(childNodes[i], data);
+                }
+            }
+        }     
+        
+        function JGVue(options){
+            //只读数据用$开头，内部数据用_开头
+            this._data = options.data;
+            this._el = options.el;
+            //准备工作
+            this.$el = this._templateDom = document.querySelector(this._el);
+            this._parent = this._templateDom.parentNode;
+            //渲染工作
+            this.render();
+        }
+        //将模板结合数据，得到HTML加到页面中
+        JGVue.prototype.render = function(){
+            this.compiler();
+        };
+        //编译，得到真正的dom元素
+        JGVue.prototype.compiler = function(){
+            let realHTMLDOM = this._templateDom.cloneNode( true );
+            compiler( realHTMLDOM ,this._data);
+            this.update(realHTMLDOM);
+        };
+        //将dom的元素放到页面中
+        JGVue.prototype.update = function(real){
+            this._parent.replaceChild(real,document.querySelector('#root'));
+        };
+        //用法
+       let app = new JGVue({
+           el:'#root',
+           data:{
+               name:{
+                   firstName :'Ma',
+                   LastName:'1a'
+               },
+               msg:'hi:)'
+           }
+       })
+       
+       //解决{{}}中无法使用.变量名进行访问对象成员的问题
+      
+       
+    </script>
+</body>
+</html>

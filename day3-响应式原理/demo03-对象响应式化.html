@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        let data = {
+            name: 'm1a',
+            age: 19,
+            course: [
+                {
+                  name: 'C++',
+                  score: 82
+                },
+                {
+                  name: 'JavaScript',
+                  score: 93
+                }
+            ]
+        }
+        //除了递归还可以使用队列（将深度优先转换成广度优先）
+        function defineRective( target, key ,value , enumerable ){
+            // if(typeof value === Object && value != null && !Array.isArray(value)) {
+            //     reactify( value );
+            // }
+            Object.defineProperty(target,key,{
+                configurable:true,
+                enumerable: enumerable,
+                get() {
+                    return value;
+                },
+                set(newVal) {
+                    value = newVal;
+                }
+            })
+        }
+        //将对象o进行响应式化
+        function reactify(o){
+            let keys = Object.keys(o);
+            for( let i = 0;i<keys.length;i++){
+                let key = keys[i];
+                let value = o[key];
+                //判断这个属性是不是引用类型，判断是不是数组类型
+                //如果是引用类型，就需要递归
+                //如果是数组，就需要循环数组，将数组里的元素进行响应式化
+                if(Array.isArray(value)) {
+                    //数组
+                    for(let j = 0; j < value.length ; j++ ){
+                        //取出数组里的每个值，进行响应化
+                        reactify[value[ j ]];
+                    }
+                }else if(typeof value === Object && value != null && !Array.isArray(value)) {
+                    //如果传入的value是非数组的引用类型，也就是object，就又回去响应化
+                    reactify( value );
+                }else{
+                    //对象或值类型
+                    defineRective(o,key,value,true);
+                }
+                
+            }
+        }
+         
+    </script>
+</body>
+</html>
